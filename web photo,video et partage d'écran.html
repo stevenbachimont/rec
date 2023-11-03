@@ -42,6 +42,37 @@
             align-items: center;
             justify-content: center;
         }
+
+        .download-link {
+            padding: 10px;
+            margin: 5px;
+            background-color: #0070a3;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .download-link:hover {
+            background-color: #005d8f;
+        }
+
+        .photo-download-link {
+            padding: 10px;
+            margin: 5px;
+            background-color: #0070a3;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .photo-download-link:hover {
+            background-color: #005d8f;
+        }
+
     </style>
 </head>
 <body>
@@ -55,7 +86,12 @@
     <button id="start-record-btn">Démarrer l'enregistrement vidéo et audio</button>
     <button id="stop-record-btn" style="display:none;">Arrêter l'enregistrement vidéo et audio</button>
 </div>
+<div id="video-download-container">
+    <video id="recorded-video" width="640" height="480" controls></video>
+</div>
 <canvas id="canvas" width="640" height="480"></canvas>
+
+
 
 <script>
     var sourceSelector = document.getElementById('source-selector');
@@ -88,14 +124,33 @@
                 }
             };
             mediaRecorder.onstop = function() {
-                var blob = new Blob(recordedChunks, { type: 'video/webm' });
+                var outputFormat = 'mp4';
+                var blob = new Blob(recordedChunks, { type: 'video/' + outputFormat });
                 var videoUrl = URL.createObjectURL(blob);
-                var videoElement = document.createElement('video');
-                videoElement.controls = true;
+
+                var videoElement = document.getElementById('recorded-video');
                 videoElement.src = videoUrl;
-                document.body.appendChild(videoElement);
+
+                var downloadLink = document.createElement('a');
+                downloadLink.href = videoUrl;
+                downloadLink.download = 'recorded-video.mp4';
+                downloadLink.innerHTML = 'Télécharger la vidéo';
+                downloadLink.className = 'download-link';
+                var downloadContainer = document.getElementById('video-download-container');
+                var existingDownloadLink = document.querySelector('#video-download-container .download-link');
+
+                if (existingDownloadLink) {
+                    downloadContainer.replaceChild(downloadLink, existingDownloadLink);
+                } else {
+                    downloadContainer.appendChild(downloadLink);
+                }
+
                 recordedChunks = [];
             };
+
+
+
+
         } catch (error) {
             console.error('Erreur lors de l\'accès à la webcam ou au partage d\'écran : ', error);
         }
