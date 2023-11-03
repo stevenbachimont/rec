@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Web photo, vidéo et partage d'écran</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f7ff;
+            text-align: center;
+        }
+
+        select, button {
+            padding: 10px;
+            margin: 5px;
+            background-color: #0070a3;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #005d8f;
+        }
+
+        video {
+            width: 640px;
+            height: 480px;
+            border: 2px solid #0070a3;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        #button-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+<video id="video" width="640" height="480" autoplay></video>
+<div id="button-container">
+    <select id="source-selector">
+        <option value="camera">Webcam</option>
+        <option value="screen">Partage d'écran</option>
+    </select>
+    <button id="capture-photo-btn">Capturer la photo</button>
+    <button id="start-record-btn">Démarrer l'enregistrement vidéo</button>
+    <button id="stop-record-btn" style="display:none;">Arrêter l'enregistrement vidéo</button>
+</div>
+<canvas id="canvas" width="640" height="480"></canvas>
+
+<script>
+    var sourceSelector = document.getElementById('source-selector');
+    var videoElement = document.getElementById('video');
+    var capturePhotoButton = document.getElementById('capture-photo-btn');
+    var startRecordButton = document.getElementById('start-record-btn');
+    var stopRecordButton = document.getElementById('stop-record-btn');
+    var canvasElement = document.getElementById('canvas');
+    var context = canvasElement.getContext('2d');
+    var mediaRecorder;
+    var recordedChunks = [];
+
+    async function startCapture() {
+        var selectedSource = getSelectedSource();
+        if (selectedSource === 'camera') {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+            } catch (error) {
+                console.error('Erreur lors de l\'accès à la webcam : ', error);
+            }
+        } else if (selectedSource === 'screen') {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                videoElement.srcObject = stream;
+            } catch (error) {
+                console.error('Erreur lors de l\'accès au partage d\'écran : ', error);
+            }
+        }
+    }
+
+    sourceSelector.addEventListener('change', startCapture);
+
+    function getSelectedSource() {
+        return sourceSelector.value;
+    }
+
+    function capturePhoto() {
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        var imageBase64 = canvasElement.toDataURL('image/jpeg');
+        var imageElement = document.createElement('img');
+        imageElement.src = imageBase64;
+        document.body.appendChild(imageElement);
+    }
+
+    capturePhotoButton.addEventListener('click', capturePhoto);
+    document.addEventListener('keydown', function(event) {
+        if (event.code === 'Space') {
+            capturePhoto();
+        }
+    });
+
+    startRecordButton.addEventListener('click', function() {
+        mediaRecorder = new MediaRecorder(videoElement.srcObject);
+        mediaRecorder.ondataavailable = function(event) {
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
+            }
+        };
+        mediaRecorder.onstop = function() {
+            var blob = new Blob(recordedChunks, { type: 'video/webm' });
+            var videoUrl = URL.createObjectURL(blob);
+            var videoElement = document.createElement('video');
+            videoElement.controls = true;
+            videoElement.src = videoUrl;
+            document.body.appendChild(videoElement);
+            recordedChunks = [];
+        };
+        mediaRecorder.start();
+        startRecordButton.style.display = 'none';
+        stopRecordButton.style.display = 'block';
+    });
+
+    stopRecordButton.addEventListener('click', function() {
+        mediaRecorder.stop();
+        startRecordButton.style.display = 'block';
+        stopRecordButton.style.display = 'none';
+    });
+
+    startCapture();
+</script>
+</body>
+</html>
