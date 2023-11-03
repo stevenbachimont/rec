@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Web photo, vidéo et partage d'écran</title>
+    <title>Web photo, vidéo et son</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -45,16 +45,15 @@
     </style>
 </head>
 <body>
-
-<video id="video" width="640" height="480" autoplay></video>
+<video id="video" width="640" height="480" autoplay muted></video>
 <div id="button-container">
     <select id="source-selector">
         <option value="camera">Webcam</option>
         <option value="screen">Partage d'écran</option>
     </select>
     <button id="capture-photo-btn">Capturer la photo</button>
-    <button id="start-record-btn">Démarrer l'enregistrement vidéo</button>
-    <button id="stop-record-btn" style="display:none;">Arrêter l'enregistrement vidéo</button>
+    <button id="start-record-btn">Démarrer l'enregistrement vidéo et audio</button>
+    <button id="stop-record-btn" style="display:none;">Arrêter l'enregistrement vidéo et audio</button>
 </div>
 <canvas id="canvas" width="640" height="480"></canvas>
 
@@ -68,23 +67,37 @@
     var context = canvasElement.getContext('2d');
     var mediaRecorder;
     var recordedChunks = [];
+    var mediaStream;
 
     async function startCapture() {
         var selectedSource = getSelectedSource();
-        if (selectedSource === 'camera') {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                videoElement.srcObject = stream;
-            } catch (error) {
-                console.error('Erreur lors de l\'accès à la webcam : ', error);
+        try {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
             }
-        } else if (selectedSource === 'screen') {
-            try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                videoElement.srcObject = stream;
-            } catch (error) {
-                console.error('Erreur lors de l\'accès au partage d\'écran : ', error);
+            if (selectedSource === 'camera') {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            } else if (selectedSource === 'screen') {
+                mediaStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
             }
+            videoElement.srcObject = mediaStream;
+            mediaRecorder = new MediaRecorder(mediaStream);
+            mediaRecorder.ondataavailable = function(event) {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            mediaRecorder.onstop = function() {
+                var blob = new Blob(recordedChunks, { type: 'video/webm' });
+                var videoUrl = URL.createObjectURL(blob);
+                var videoElement = document.createElement('video');
+                videoElement.controls = true;
+                videoElement.src = videoUrl;
+                document.body.appendChild(videoElement);
+                recordedChunks = [];
+            };
+        } catch (error) {
+            console.error('Erreur lors de l\'accès à la webcam ou au partage d\'écran : ', error);
         }
     }
 
@@ -110,21 +123,6 @@
     });
 
     startRecordButton.addEventListener('click', function() {
-        mediaRecorder = new MediaRecorder(videoElement.srcObject);
-        mediaRecorder.ondataavailable = function(event) {
-            if (event.data.size > 0) {
-                recordedChunks.push(event.data);
-            }
-        };
-        mediaRecorder.onstop = function() {
-            var blob = new Blob(recordedChunks, { type: 'video/webm' });
-            var videoUrl = URL.createObjectURL(blob);
-            var videoElement = document.createElement('video');
-            videoElement.controls = true;
-            videoElement.src = videoUrl;
-            document.body.appendChild(videoElement);
-            recordedChunks = [];
-        };
         mediaRecorder.start();
         startRecordButton.style.display = 'none';
         stopRecordButton.style.display = 'block';
