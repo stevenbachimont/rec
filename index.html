@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Web photo, vidéo et son</title>
+    <link rel="stylesheet" href="style.css">
+
+
+</head>
+<body>
+<video id="video" width="640" height="480" autoplay muted></video>
+<div id="button-container">
+    <select id="source-selector">
+        <option value="camera">Webcam</option>
+        <option value="screen">Partage d'écran</option>
+    </select>
+    <button id="capture-photo-btn">Capturer la photo</button>
+    <button id="start-record-btn">Démarrer l'enregistrement vidéo et audio</button>
+    <button id="stop-record-btn" style="display:none;">Arrêter l'enregistrement vidéo et audio</button>
+</div>
+<div id="video-download-container">
+    <video id="recorded-video" width="640" height="480" controls></video>
+</div>
+<canvas id="canvas" width="640" height="480"></canvas>
+
+<script src="script.js"></script>
+
+
+</body>
+</html>
